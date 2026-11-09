@@ -29,6 +29,12 @@ class Layer_new_class {
 				//N
 				this.new();
 			}
+			if (code == 74 && (event.ctrlKey == true || event.metaKey)
+				&& (config.TOOL.name == 'selection' || config.TOOL.name == 'magic_wand')) {
+				//Ctrl+J - copy selection to new layer
+				event.preventDefault();
+				this.new_selection();
+			}
 		}, false);
 	}
 
@@ -39,6 +45,10 @@ class Layer_new_class {
 	}
 
 	new_selection() {
+		if (config.TOOL.name == 'magic_wand') {
+			app.GUI.GUI_tools.tools_modules.magic_wand.object.copy_to_new_layer();
+			return;
+		}
 		var selection = this.Base_selection.get_selection();
 		var layer = config.layer;
 

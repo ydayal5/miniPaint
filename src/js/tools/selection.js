@@ -82,8 +82,8 @@ class Selection_class extends Base_tools_class {
 			if (this.Helper.is_input(e.target))
 				return;
 
-			if (code == 27) {
-				//escape
+			if (code == 27 && config.TOOL.name != 'magic_wand') {
+				//escape (Magic Wand handles its own)
 				app.State.do_action(new app.Actions.Bundle_action('clear_selection', 'Clear Selection', this.on_leave()));
 			}
 			if (code == 46) {
@@ -94,6 +94,9 @@ class Selection_class extends Base_tools_class {
 			}
 			if (code == 65 && (e.ctrlKey == true || e.metaKey)) {
 				//A
+				if (config.TOOL.name == 'magic_wand') {
+					return; //Magic Wand handles its own select all
+				}
 				e.preventDefault();
 				this.select_all();
 			}

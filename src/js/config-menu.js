@@ -112,6 +112,7 @@ const menuDefinition = [
 			},
 			{
 				name: 'Copy Selection',
+				shortcut: 'Ctrl+J',
 				target: 'layer/new.new_selection'
 			},
 			{
@@ -131,6 +132,11 @@ const menuDefinition = [
 				name: 'Select All',
 				shortcut: 'Ctrl+A',
 				target: 'edit/selection.select_all'
+			},
+			{
+				name: 'Invert Selection',
+				shortcut: 'Ctrl+E',
+				target: 'edit/selection.invert'
 			}
 		]
 	},

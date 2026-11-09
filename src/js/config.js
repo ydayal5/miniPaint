@@ -127,8 +127,22 @@ config.TOOLS = [
 		attributes: {
 			power: 15,
 			anti_aliasing: true,
-			contiguous: false,
+			contiguous: true,
 		},
+	},
+	{
+		name: 'magic_wand',
+		title: 'Magic Wand Tool',
+		attributes: {
+			mode: {
+				value: 'New',
+				values: ['New', 'Add', 'Subtract'],
+			},
+			power: 15,
+			contiguous: true,
+			anti_aliasing: false,
+		},
+		on_leave: 'on_leave',
 	},
 	{
 		name: 'fill',

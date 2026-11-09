@@ -3,6 +3,7 @@ import config from './../config.js';
 import Base_tools_class from './../core/base-tools.js';
 import Base_layers_class from './../core/base-layers.js';
 import alertify from './../../../node_modules/alertifyjs/build/alertify.min.js';
+import { build_color_mask, mask_to_canvas } from './../libs/color-mask.js';
 
 class Magic_erase_class extends Base_tools_class {
 
@@ -84,7 +85,7 @@ class Magic_erase_class extends Base_tools_class {
 
 		//change
 		this.working = true;
-		this.magic_erase_general(ctx, config.WIDTH, config.HEIGHT,
+		this.magic_erase_general(ctx, canvas.width, canvas.height,
 			mouse_x, mouse_y, params.power, params.anti_aliasing, params.contiguous);
 
 		app.State.do_action(
@@ -107,102 +108,23 @@ class Magic_erase_class extends Base_tools_class {
 	 * @param {int} y
 	 * @param {int} sensitivity max 100
 	 * @param {Boolean} anti_aliasing
+	 * @param {Boolean} contiguous true = erase only connected pixels, false = erase matching color everywhere
 	 */
-	magic_erase_general(context, W, H, x, y, sensitivity, anti_aliasing, contiguous = false) {
-		sensitivity = sensitivity * 255 / 100; //convert to 0-255 interval
-		x = parseInt(x);
-		y = parseInt(y);
-		var canvasTemp = document.createElement('canvas');
-		canvasTemp.width = W;
-		canvasTemp.height = H;
-		var ctxTemp = canvasTemp.getContext("2d");
-
-		ctxTemp.rect(0, 0, W, H);
-		ctxTemp.fillStyle = "rgba(255, 255, 255, 0)";
-		ctxTemp.fill();
-
-		var img_tmp = ctxTemp.getImageData(0, 0, W, H);
-		var imgData_tmp = img_tmp.data;
-
+	magic_erase_general(context, W, H, x, y, sensitivity, anti_aliasing, contiguous = true) {
 		var img = context.getImageData(0, 0, W, H);
-		var imgData = img.data;
-		var k = ((y * (img.width * 4)) + (x * 4));
-		var dx = [0, -1, +1, 0];
-		var dy = [-1, 0, 0, +1];
-		var color_to = {
-			r: 255,
-			g: 255,
-			b: 255,
-			a: 255
-		};
-		var color_from = {
-			r: imgData[k + 0],
-			g: imgData[k + 1],
-			b: imgData[k + 2],
-			a: imgData[k + 3]
-		};
-		if (color_from.r == color_to.r &&
-			color_from.g == color_to.g &&
-			color_from.b == color_to.b &&
-			color_from.a == 0) {
+		var k = ((parseInt(y) * W) + parseInt(x)) * 4;
+		if (img.data[k + 3] == 0) {
+			//clicked on transparent pixel - nothing to erase
 			return false;
 		}
-		if (contiguous == false) {
-			//check only nearest pixels
-			var stack = [];
-			stack.push([x, y]);
-			while (stack.length > 0) {
-				var curPoint = stack.pop();
-				for (var i = 0; i < 4; i++) {
-					var nextPointX = curPoint[0] + dx[i];
-					var nextPointY = curPoint[1] + dy[i];
-					if (nextPointX < 0 || nextPointY < 0 || nextPointX >= W || nextPointY >= H)
-						continue;
-					var k = (nextPointY * W + nextPointX) * 4;
-					if (imgData_tmp[k + 3] != 0)
-						continue; //already parsed
 
-					if (Math.abs(imgData[k] - color_from.r) <= sensitivity
-						&& Math.abs(imgData[k + 1] - color_from.g) <= sensitivity
-						&& Math.abs(imgData[k + 2] - color_from.b) <= sensitivity
-						&& Math.abs(imgData[k + 3] - color_from.a) <= sensitivity) {
-						//erase
-						imgData_tmp[k] = color_to.r; //r
-						imgData_tmp[k + 1] = color_to.g; //g
-						imgData_tmp[k + 2] = color_to.b; //b
-						imgData_tmp[k + 3] = color_to.a; //a
-
-						stack.push([nextPointX, nextPointY]);
-					}
-				}
-			}
-		}
-		else {
-			//global mode - contiguous
-			for (var i = 0; i < imgData.length; i += 4) {
-				if (imgData[i + 3] == 0)
-					continue;	//transparent
-
-				//imgData[i] + 0.7152 * imgData[i + 1] + 0.0722 * imgData[i + 2]);
-
-				for (var j = 0; j < 4; j++) {
-					var k = i + j;
-
-					if (Math.abs(imgData[k] - color_from.r) <= sensitivity
-						&& Math.abs(imgData[k + 1] - color_from.g) <= sensitivity
-						&& Math.abs(imgData[k + 2] - color_from.b) <= sensitivity
-						&& Math.abs(imgData[k + 3] - color_from.a) <= sensitivity) {
-						imgData_tmp[k] = color_to.r; //r
-						imgData_tmp[k + 1] = color_to.g; //g
-						imgData_tmp[k + 2] = color_to.b; //b
-						imgData_tmp[k + 3] = color_to.a; //a
-					}
-				}
-			}
+		var mask = build_color_mask(img.data, W, H, x, y, sensitivity, contiguous);
+		if (mask === null) {
+			return false;
 		}
 
 		//destination-out + blur = anti-aliasing
-		ctxTemp.putImageData(img_tmp, 0, 0);
+		var canvasTemp = mask_to_canvas(mask, W, H);
 		context.globalCompositeOperation = "destination-out";
 		if (anti_aliasing == true) {
 			context.filter = 'blur(1px)';
